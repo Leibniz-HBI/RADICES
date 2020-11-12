@@ -4,9 +4,29 @@
 
 This software prototype creates an explorative sample of core accounts in (optionally language-based) Twitter follow networks.
 
-It was developed first for a Twitter follow network sampling experiment described in this talk: https://youtu.be/qsnGTl8d3qU?t=21823. A journal article describing the method and its results in detail is currently undergoing peer review. Until then you can [cite the software itself](https://doi.org/10.6084/m9.figshare.8864777). A preprint is available here: https://arxiv.org/abs/1908.07788
+A short demo that was prepared for the ICA conference in 2020 can be found here:
+
+https://vimeo.com/418025499
+
+It was developed first for a Twitter follow network sampling experiment described in this talk:
+
+https://youtu.be/qsnGTl8d3qU?t=21823.
+
+A journal article describing the (old base-version of the) method and its results in detail is currently undergoing peer review. Until then you can [cite the software itself](https://doi.org/10.6084/m9.figshare.8864777).
+
+A preprint is available here:
+
+https://arxiv.org/abs/1908.07788
 
 (**PLEASE NOTE:** The language specification is not working as it did for our paper due to changes in the Twitter API. Now it uses the language of the last tweet (or optionally the last 200 tweets with a threshold fraction defined by you to avoid false positives) by a user as determined by Twitter instead of the interface language. This might lead to different results.)
+
+A large-scale test of the 'bootstrapping' feature regarding the preservation of k-coreness-ranking of the sampled accounts is presented here:
+
+https://youtu.be/sV8Giaj9UwI (video for IC2S2 2020)
+
+A test of the sampling method across language communities (Italian and German) can be watched here:
+
+https://www.youtube.com/watch?v=dhXRO2d1Eno (video for AoIR 2020)
 
 Please feel free to open an issue or comment if you have any questions.
 
@@ -67,13 +87,14 @@ Note that the `seeds.csv` at least have to contain that many account IDs as walk
 
 Run (while you are in the pipenv virtual environment)
 ```
-python start.py -n 2 -l de it -lt 0.05 -p 1
+python start.py -n 2 -l de it -lt 0.05 -p 1 -k "keyword1" "keyword2" "keyword3"
 ```
 where
 
 * -n takes the number of seeds to be drawn from the seed pool,
 * -l can set the Twitter accounts's last [status languages](https://developer.twitter.com/en/docs/developer-utilities/supported-languages/api-reference/get-help-languages) that are of your interest,
 * -lt defines a fraction of tweets within the last 200 tweets that has to be detected to be in the requested languages (might slow down collection)
+* -k can be used to only follow paths to seeds who used defined keywords in their last 200 tweets (keywords are interpreted as [regexes](https://docs.python.org/3/howto/regex.html), ignoring case)
 * and -p the number of pages to look at when identifying the next node. For explanation of advanced usage and more features (like 'bootstrapping', an approach, reminiscent of snowballing, to grow the seed pool) use
 
 ```
@@ -86,6 +107,25 @@ Note:
 - If you get an error saying "lookup_users() got an unexpected keyword argument", you likely have the wrong version of tweepy installed. Either update your tweepy package or use pipenv to create a virtual environment and install all the packages you need.
 - If at some point an error is encountered: There is a -r (restart with latest seeds) option to resume collection after interrupting the crawler with `control-c`. This is also handy in case you need to reboot your machine. **Note that you will still have to define the other parameters as you did when you started the collection the first time.**
 
+## Analysis (with Gephi)
+
+It is possible to import the data into tools like Gephi via a MySQL connector. However, Gephi apparently supports only MySQL 5 at the time of writing.
+
+To do so, it is helpful to use [`create_node_view.sql`](https://github.com/FlxVctr/RADICES/blob/master/create_node_view.sql) and [`create_dense_result.sql`](https://github.com/FlxVctr/RADICES/blob/master/create_dense_result.sql) to create views for Gephi to import.
+
+Then you can import the results, in the case of Gephi via the menu item **File -> Import Database -> Edge List**, using your database credentials and
+
+* `SELECT * FROM nodes` as the "Node Query"
+* `SELECT * FROM result` as the "Edge Query" if you want to analyse the walked edges only (as done in the German Twittersphere paper)
+* `SELECT * FROM dense_result` as the "Edge Query" if you want to analyse all edges between collected accounts (which will be a much denser network)
+
+Other tables created by RADICES in the database that might be interesting for analysis are:
+
+* **result**: edge list (columns: source,target) containing the Twitter IDs of walked accounts
+* **friends**: cache of collected follow connections, up to p * 5000 connections per walked account (might contain connections to accounts which do not fulfill language or keyword criteria)
+* **user_details**: user details cache, as defined in `config.yml` of all accounts in **result** and **friends** (might contain not deleted data from accounts which do not fulfill language or keyword criteria)
+
+Other tables contain only data that is necessary for internal functions.
 
 ## Testing
 
